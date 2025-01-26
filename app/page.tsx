@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 
@@ -9,7 +9,7 @@ export default function Home() {
 
   // Random extension range (in seconds)
   const [minExtension, setMinExtension] = useState<number>(1);
-  const [maxExtension, setMaxExtension] = useState<number>(30);
+  const [maxExtension, setMaxExtension] = useState<number>(0);
 
   // Timer state
   const [timeLeft, setTimeLeft] = useState<number>(0);
@@ -41,6 +41,14 @@ export default function Home() {
     setIsRunning(true);
     setUsedExtension(false);
     setExtensionActive(false);
+  };
+
+  // Stop the sound
+  const handleStopSound = () => {
+    if (audioRef.current) {
+      audioRef.current.pause(); // Stop the audio
+      audioRef.current.currentTime = 0; // Reset playback to the beginning
+    }
   };
 
   // Countdown effect
@@ -159,13 +167,21 @@ export default function Home() {
           )}
         </div>
 
-        {/* Start Button */}
-        <button
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded font-semibold"
-          onClick={handleStart}
-        >
-          Start Timer
-        </button>
+        {/* Control Buttons */}
+        <div className="flex gap-4">
+          <button
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded font-semibold"
+            onClick={handleStart}
+          >
+            Start Timer
+          </button>
+          <button
+            className="w-full bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded font-semibold"
+            onClick={handleStopSound}
+          >
+            Stop Sound
+          </button>
+        </div>
       </div>
     </div>
   );
