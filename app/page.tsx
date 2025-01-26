@@ -1,101 +1,172 @@
-import Image from "next/image";
+"use client"
+
+import { useState, useEffect, useRef } from "react";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  // Timer inputs
+  const [minutes, setMinutes] = useState<number>(1);
+  const [seconds, setSeconds] = useState<number>(30);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  // Random extension range (in seconds)
+  const [minExtension, setMinExtension] = useState<number>(1);
+  const [maxExtension, setMaxExtension] = useState<number>(30);
+
+  // Timer state
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [isRunning, setIsRunning] = useState<boolean>(false);
+
+  // Track whether we've already used the random extension
+  const [usedExtension, setUsedExtension] = useState<boolean>(false);
+
+  // For indicating that extension is active
+  const [extensionActive, setExtensionActive] = useState<boolean>(false);
+
+  // Audio reference for beep
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Format time as mm:ss
+  const formatTime = (totalSeconds: number) => {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    const mm = m < 10 ? `0${m}` : m;
+    const ss = s < 10 ? `0${s}` : s;
+    return `${mm}:${ss}`;
+  };
+
+  // Start the timer
+  const handleStart = () => {
+    // Calculate total base time in seconds
+    const baseTime = minutes * 60 + seconds;
+    setTimeLeft(baseTime);
+    setIsRunning(true);
+    setUsedExtension(false);
+    setExtensionActive(false);
+  };
+
+  // Countdown effect
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+
+    if (isRunning && timeLeft > 0) {
+      // Decrement time every second
+      timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    } else if (isRunning && timeLeft === 0) {
+      // Timer just hit 0
+      if (!usedExtension) {
+        // We haven't used the random extension yet
+        const randomSeconds =
+          Math.floor(Math.random() * (maxExtension - minExtension + 1)) +
+          minExtension;
+        setTimeLeft(randomSeconds);
+        setUsedExtension(true);
+        setExtensionActive(true);
+      } else {
+        // The timer has ended (extension also finished)
+        setIsRunning(false);
+        setExtensionActive(false);
+        // Play beep sound
+        if (audioRef.current) {
+          audioRef.current.play().catch((err) => {
+            console.warn("Failed to play audio:", err);
+          });
+        }
+      }
+    }
+
+    // Clean up
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isRunning, timeLeft, usedExtension, minExtension, maxExtension]);
+
+  return (
+    <div className="min-h-screen flex flex-col items-center text-black justify-center bg-gray-100 p-4">
+      {/* Hidden audio element for beep */}
+      <audio ref={audioRef} src="/TimerChimeEnd.mp3" preload="auto" />
+
+      <div className="w-full max-w-md bg-white p-6 rounded-lg shadow-md">
+        <h1 className="text-2xl font-bold text-center mb-6">Randomized Timer - Roman Slack</h1>
+
+        {/* Timer Inputs */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="flex flex-col">
+            <label htmlFor="minutes" className="mb-1 font-medium">
+              Minutes
+            </label>
+            <input
+              id="minutes"
+              type="number"
+              min="0"
+              className="border rounded p-2"
+              value={minutes}
+              onChange={(e) => setMinutes(parseInt(e.target.value, 10) || 0)}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          </div>
+          <div className="flex flex-col">
+            <label htmlFor="seconds" className="mb-1 font-medium">
+              Seconds
+            </label>
+            <input
+              id="seconds"
+              type="number"
+              min="0"
+              className="border rounded p-2"
+              value={seconds}
+              onChange={(e) => setSeconds(parseInt(e.target.value, 10) || 0)}
+            />
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+
+        {/* Random Extension Inputs */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="flex flex-col">
+            <label htmlFor="minExt" className="mb-1 font-medium">
+              Min Ext (s)
+            </label>
+            <input
+              id="minExt"
+              type="number"
+              min="0"
+              className="border rounded p-2"
+              value={minExtension}
+              onChange={(e) => setMinExtension(parseInt(e.target.value, 10) || 0)}
+            />
+          </div>
+          <div className="flex flex-col">
+            <label htmlFor="maxExt" className="mb-1 font-medium">
+              Max Ext (s)
+            </label>
+            <input
+              id="maxExt"
+              type="number"
+              min="0"
+              className="border rounded p-2"
+              value={maxExtension}
+              onChange={(e) => setMaxExtension(parseInt(e.target.value, 10) || 0)}
+            />
+          </div>
+        </div>
+
+        {/* Timer Display */}
+        <div className="text-center mb-6">
+          <p className="text-4xl font-bold">
+            {formatTime(timeLeft)}
+          </p>
+          {extensionActive && (
+            <p className="text-green-600 text-sm mt-2">Extension Active!</p>
+          )}
+        </div>
+
+        {/* Start Button */}
+        <button
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded font-semibold"
+          onClick={handleStart}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          Start Timer
+        </button>
+      </div>
     </div>
   );
 }
